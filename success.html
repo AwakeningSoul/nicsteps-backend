@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Payment Successful</title>
+</head>
+<body>
+  <h1>Thank you for your order!</h1>
+  <p>Your payment was successful.</p>
+
+  <script>
+  console.log("Script loaded successfully");  // ✅ Add this here
+
+  const orderData = JSON.parse(localStorage.getItem("orderData"));
+
+  if (orderData) {
+    console.log("Success page script running...");
+    fetch("http://localhost:3000/create-order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(orderData)
+    })
+    .then(res => res.json())
+    .then(data => {
+      console.log("Order created:", data);
+      localStorage.removeItem("orderData");
+    })
+    .catch(err => console.error("Order error:", err));
+  }
+</script>
+</body>
+</html>
