@@ -190,11 +190,11 @@ const shipping = session.shipping_details;
 
 // Construct recipient object for Printful
 const recipient = {
-  name: shipping?.name || session.customer_email || "NICSTEPS Customer",
+  name: session.customer_details?.name || shipping?.name || "NICSTEPS Customer",
   email: session.customer_email,
-  address1: shipping?.address?.line1 || "123 Test Street",   // fallback only in sandbox
-  city: shipping?.address?.city || "London",                 // fallback only in sandbox
-  zip: shipping?.address?.postal_code || "SW1A 1AA",         // fallback only in sandbox
+  address1: shipping?.address?.line1 || "123 Test Street",
+  city: shipping?.address?.city || "London",
+  zip: shipping?.address?.postal_code || "SW1A 1AA",
   country_code: shipping?.address?.country || "GB"
 };
 
