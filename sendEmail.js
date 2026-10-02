@@ -6,8 +6,8 @@ export async function sendOrderConfirmation(order) {
   const msg = {
     to: order.email,
     cc: "info@nicsteps.co.uk",
-    from: "nickstepsinfo@gmail.com",
-    reply_to: "nickstepsinfo@gmail.com",
+    from: "orders@nicsteps.co.uk",
+    reply_to: "orders@nicsteps.co.uk",
     templateId: "d-79995007e9a34c7db845b1572a7380ae",
     dynamic_template_data: {
       customerName: order.customerName,
