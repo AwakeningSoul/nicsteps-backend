@@ -107,9 +107,10 @@ app.post("/create-order", async (req, res) => {
         orderNumber: data.result.id,
         orderDate: new Date().toLocaleDateString(),
         items: data.result.items.map((item) => ({
-          name: item.name,
-          quantity: item.quantity,
-          price: item.price,
+        name: item.name,
+        description: `${item.variant_name || ""} ${item.options ? item.options.join(", ") : ""}`.trim(),
+        quantity: item.quantity,
+        price: item.price,
         })),
         subtotal: data.result.costs.subtotal,
         shipping: data.result.costs.shipping,
