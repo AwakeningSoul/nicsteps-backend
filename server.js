@@ -180,9 +180,12 @@ app.post("/webhook", express.raw({ type: "application/json" }), async (req, res)
 
     // 2. Retrieve ALL line items (up to 100)
     const lineItems = await stripe.checkout.sessions.listLineItems(
-      event.data.object.id,
-      { limit: 100 }
-    );
+  event.data.object.id,
+  {
+    limit: 100,
+    expand: ["data.price.product"]
+  }
+);
 
     console.log("Payment completed:", session.id);
 
