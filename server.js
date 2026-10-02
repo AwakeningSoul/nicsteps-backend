@@ -176,8 +176,9 @@ app.post("/webhook", express.raw({ type: "application/json" }), async (req, res)
   if (event.type === "checkout.session.completed") {
     try {
       const session = await stripe.checkout.sessions.retrieve(event.data.object.id, {
-        expand: ["line_items.data.price.product"]
-      });
+          expand: ["line_items"],
+          limit: 100
+        });
 
       console.log("Payment completed:", session.id);
 
