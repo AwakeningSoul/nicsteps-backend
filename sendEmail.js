@@ -5,8 +5,9 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 export async function sendOrderConfirmation(order) {
   const msg = {
     to: order.email,
-    from: "orders@nicsteps.co.uk",
-    reply_to: "stiklene13@gmail.com",
+    cc: "info@nicsteps.co.uk",
+    from: "nickstepsinfo@gmail.com",
+    reply_to: "nickstepsinfo@gmail.com",
     templateId: "d-79995007e9a34c7db845b1572a7380ae",
     dynamic_template_data: {
       customerName: order.customerName,
