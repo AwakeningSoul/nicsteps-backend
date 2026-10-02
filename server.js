@@ -72,8 +72,8 @@ const session = await stripe.checkout.sessions.create({
   },
 
   line_items,
-  success_url: "http://localhost:3000/success.html",
-  cancel_url: "http://localhost:3000/cancel.html"
+  success_url: "https://nicsteps-frontend.netlify.app/success.html",
+  cancel_url: "https://nicsteps-frontend.netlify.app/cancel.html",
 });
 
     res.json({ url: session.url });
