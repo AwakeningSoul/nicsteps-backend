@@ -251,7 +251,7 @@ if (!fullOrder.result.items || fullOrder.result.items.length === 0) {
   console.error("Printful returned no items");
 }
 
-      // 5. Build email items with full details
+     // Image mapping for your Netlify images
 const imageMap = {
   "Multicam Black": "multicam-black.png",
   "Dark Navy": "dark-navy.png",
@@ -264,13 +264,21 @@ const imageMap = {
   "White": "white.png"
 };
 
-const emailItems = fullOrder.result.items.map(item => ({
-  name: item.product?.name || "NICSTEPS Product",
-  description: item.variant?.name || "Custom Embroidery",
-  quantity: item.quantity,
-  price: item.retail_price || session.amount_total / 100,
-  image: `https://nicsteps-frontend.netlify.app/images/${imageMap[item.variant?.name] || "default.png"}`
-}));
+      //// 5. Build email items with full details
+// Build email items with full details + correct image
+const emailItems = fullOrder.result.items.map(item => {
+  // Strip size from variant name (e.g., "Black / S/M" → "Black")
+  const variantName = item.variant?.name.split("/")[0].trim();
+
+  return {
+    name: item.product?.name || "NICSTEPS Product",
+    description: item.variant?.name || "Custom Embroidery",
+    quantity: item.quantity,
+    price: item.retail_price || session.amount_total / 100,
+    image: `https://nicsteps-frontend.netlify.app/images/${imageMap[variantName] || "default.png"}`
+  };
+});
+
 
       // 6. Build email order object
       const order = {
