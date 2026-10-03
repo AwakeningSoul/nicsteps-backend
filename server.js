@@ -251,6 +251,55 @@ if (!fullOrder.result.items || fullOrder.result.items.length === 0) {
   console.error("Printful returned no items");
 }
 
+// ⭐ Your PRODUCTS object (needed for reverse lookup)
+const PRODUCTS = {
+  "Multicam Black": {
+    image: "images/multicam-black.png",
+    variants: { "S/M": 15897, "L/XL": 15898 }
+  },
+  "Dark Navy": {
+    image: "images/dark-navy.png",
+    variants: { "S/M": 5278, "L/XL": 5279 }
+  },
+  "Black": {
+    image: "images/black.png",
+    variants: { "S/M": 5276, "L/XL": 5277 }
+  },
+  "Royal Blue": {
+    image: "images/royal-blue.png",
+    variants: { "S/M": 5286, "L/XL": 5287 }
+  },
+  "Red": {
+    image: "images/red.png",
+    variants: { "S/M": 5288, "L/XL": 5289 }
+  },
+  "Olive": {
+    image: "images/olive.png",
+    variants: { "S/M": 15901, "L/XL": 15902 }
+  },
+  "Dark Grey": {
+    image: "images/dark-grey.png",
+    variants: { "S/M": 5280, "L/XL": 5281 }
+  },
+  "Khaki": {
+    image: "images/khaki.png",
+    variants: { "S/M": 5292, "L/XL": 5293 }
+  },
+  "White": {
+    image: "images/white.png",
+    variants: { "S/M": 5274, "L/XL": 5275 }
+  }
+};
+
+// ⭐ Build reverse lookup: variant_id → color name
+const variantIdToColor = {};
+for (const color in PRODUCTS) {
+  const variants = PRODUCTS[color].variants;
+  for (const size in variants) {
+    variantIdToColor[variants[size]] = color;
+  }
+}
+
 // ⭐ Image mapping for your Netlify images
 const imageMap = {
   "Multicam Black": "multicam-black.png",
@@ -266,14 +315,19 @@ const imageMap = {
 
 // 5. Build email items with full details
 const emailItems = fullOrder.result.items.map(item => {
-  const variantName = item.variant?.name.split("/")[0].trim();
+
+  // Printful does NOT return variant.name for API-created draft orders
+  // So we use variant_id instead
+  const variantId = item.variant_id;
+  const variantName = variantIdToColor[variantId];
 
   console.log("FULL VARIANT NAME FROM PRINTFUL:", item.variant?.name);
-  console.log("EXTRACTED VARIANT NAME:", variantName);
+  console.log("VARIANT ID:", variantId);
+  console.log("RESOLVED COLOR NAME:", variantName);
 
   return {
     name: item.product?.name || "NICSTEPS Product",
-    description: item.variant?.name || "Custom Embroidery",
+    description: variantName || "Custom Embroidery",
     quantity: item.quantity,
     price: item.retail_price || session.amount_total / 100,
     image: `https://nicsteps-frontend.netlify.app/images/${imageMap[variantName] || "default.png"}`
@@ -281,7 +335,7 @@ const emailItems = fullOrder.result.items.map(item => {
 });
 
 console.log("IMAGE URL SENT TO SENDGRID:", emailItems[0].image);
-
+      
       // 6. Build email order object
       const order = {
         customerName: recipient.name,
