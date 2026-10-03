@@ -261,6 +261,9 @@ for (const key in PRODUCTS) {
 const emailItems = fullOrder.result.items.map(item => {
   const variantName = item.variant?.name.split("/")[0].trim();
 
+  console.log("FULL VARIANT NAME FROM PRINTFUL:", item.variant?.name);
+  console.log("EXTRACTED VARIANT NAME:", variantName);
+
   return {
     name: item.product?.name || "NICSTEPS Product",
     description: item.variant?.name || "Custom Embroidery",
