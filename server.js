@@ -233,7 +233,7 @@ app.post("/webhook", express.raw({ type: "application/json" }), async (req, res)
       const printfulData = await printfulOrder.json();
       console.log("Printful order created:", printfulData);
 
-      // 4. Fetch FULL Printful order details
+     // 4. Fetch FULL Printful order details
 const fullOrderResponse = await fetch(
   `https://api.printful.com/orders/${printfulData.result.id}`,
   {
@@ -246,33 +246,19 @@ const fullOrderResponse = await fetch(
 
 const fullOrder = await fullOrderResponse.json();
 
-// ⭐ SAFETY CHECK — Add this here
+// ⭐ SAFETY CHECK
 if (!fullOrder.result.items || fullOrder.result.items.length === 0) {
   console.error("Printful returned no items");
 }
 
-     // Image mapping for your Netlify images
-const imageMap = {
-  "Multicam Black": "multicam-black.png",
-  "Dark Navy": "dark-navy.png",
-  "Royal Blue": "royal-blue.png",
-  "Olive": "olive.png",
-  "Red": "red.png",
-  "Khaki": "khaki.png",
-  "Dark Grey": "dark-grey.png",
-  "Black": "black.png",
-  "White": "white.png"
-};
-
-      //// 5. Build email items with full details
-// Build email items with full details + correct image
-      const imageMap = {};
+// ⭐ Build imageMap automatically from PRODUCTS
+const imageMap = {};
 for (const key in PRODUCTS) {
   imageMap[key] = PRODUCTS[key].image.replace("images/", "");
 }
-      
+
+// 5. Build email items with full details
 const emailItems = fullOrder.result.items.map(item => {
-  // Strip size from variant name (e.g., "Black / S/M" → "Black")
   const variantName = item.variant?.name.split("/")[0].trim();
 
   return {
@@ -283,6 +269,7 @@ const emailItems = fullOrder.result.items.map(item => {
     image: `https://nicsteps-frontend.netlify.app/images/${imageMap[variantName] || "default.png"}`
   };
 });
+
 console.log("IMAGE URL SENT TO SENDGRID:", emailItems[0].image);
 
       // 6. Build email order object
