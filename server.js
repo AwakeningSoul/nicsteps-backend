@@ -266,6 +266,11 @@ const imageMap = {
 
       //// 5. Build email items with full details
 // Build email items with full details + correct image
+      const imageMap = {};
+for (const key in PRODUCTS) {
+  imageMap[key] = PRODUCTS[key].image.replace("images/", "");
+}
+      
 const emailItems = fullOrder.result.items.map(item => {
   // Strip size from variant name (e.g., "Black / S/M" → "Black")
   const variantName = item.variant?.name.split("/")[0].trim();
