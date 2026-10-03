@@ -252,14 +252,25 @@ if (!fullOrder.result.items || fullOrder.result.items.length === 0) {
 }
 
       // 5. Build email items with full details
-        const emailItems = fullOrder.result.items.map(item => ({
-        name: item.product?.name || "NICSTEPS Product",
-        description: item.variant?.name || "Custom Embroidery",
-        quantity: item.quantity,
-        price: item.retail_price || session.amount_total / 100,
-        image: item.files?.[0]?.preview_url || null
-}));
+const imageMap = {
+  "Multicam Black": "multicam-black.png",
+  "Dark Navy": "dark-navy.png",
+  "Royal Blue": "royal-blue.png",
+  "Olive": "olive.png",
+  "Red": "red.png",
+  "Khaki": "khaki.png",
+  "Dark Grey": "dark-grey.png",
+  "Black": "black.png",
+  "White": "white.png"
+};
 
+const emailItems = fullOrder.result.items.map(item => ({
+  name: item.product?.name || "NICSTEPS Product",
+  description: item.variant?.name || "Custom Embroidery",
+  quantity: item.quantity,
+  price: item.retail_price || session.amount_total / 100,
+  image: `https://nicsteps-frontend.netlify.app/images/${imageMap[item.variant?.name] || "default.png"}`
+}));
 
       // 6. Build email order object
       const order = {
