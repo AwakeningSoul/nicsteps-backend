@@ -175,83 +175,112 @@ app.post("/webhook", express.raw({ type: "application/json" }), async (req, res)
   }
 
   if (event.type === "checkout.session.completed") {
-  try {
-    // 1. Retrieve the session (basic)
-    const session = await stripe.checkout.sessions.retrieve(event.data.object.id);
+    try {
+      // 1. Retrieve the session
+      const session = await stripe.checkout.sessions.retrieve(event.data.object.id);
 
-    // 2. Retrieve ALL line items (up to 100)
-    const lineItems = await stripe.checkout.sessions.listLineItems(
-  event.data.object.id,
+      // 2. Retrieve ALL line items
+      const lineItems = await stripe.checkout.sessions.listLineItems(
+        event.data.object.id,
+        {
+          limit: 100,
+          expand: ["data.price.product"]
+        }
+      );
+
+      console.log("Payment completed:", session.id);
+
+      // Build Printful items
+      const printfulItems = lineItems.data.map(item => ({
+        variant_id: Number(item.price.product.metadata.printfulVariantId),
+        quantity: item.quantity,
+        files: [{ id: 1072375296 }],
+        options: [
+          { id: "thread_colors", value: ["#FFFFFF"] }
+        ]
+      }));
+
+      const shipping = session.shipping_details;
+
+      const recipient = {
+        name: session.customer_details?.name || shipping?.name || "NICSTEPS Customer",
+        email: session.customer_email,
+        address1: shipping?.address?.line1 || "123 Test Street",
+        city: shipping?.address?.city || "London",
+        zip: shipping?.address?.postal_code || "SW1A 1AA",
+        country_code: shipping?.address?.country || "GB"
+      };
+
+      if (shipping?.address?.state) {
+        recipient.state_code = shipping.address.state;
+      }
+
+      // 3. Create Printful order
+      const printfulOrder = await fetch("https://api.printful.com/orders", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.PRINTFUL_API_KEY}`,
+          "X-PF-Store-Id": "18797480",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          confirm: true,
+          recipient,
+          items: printfulItems
+        })
+      });
+
+      const printfulData = await printfulOrder.json();
+      console.log("Printful order created:", printfulData);
+
+      // 4. Fetch FULL Printful order details
+const fullOrderResponse = await fetch(
+  `https://api.printful.com/orders/${printfulData.result.id}`,
   {
-    limit: 100,
-    expand: ["data.price.product"]
+    headers: {
+      Authorization: `Bearer ${process.env.PRINTFUL_API_KEY}`,
+      "X-PF-Store-Id": "18797480"
+    }
   }
 );
 
-    console.log("Payment completed:", session.id);
+const fullOrder = await fullOrderResponse.json();
 
-    // Build Printful items from ALL line items
-    const printfulItems = lineItems.data.map(item => ({
-      variant_id: Number(item.price.product.metadata.printfulVariantId),
-      quantity: item.quantity,
-      files: [{ id: 1072375296 }],
-      options: [
-        { id: "thread_colors", value: ["#FFFFFF"] }
-      ]
-    }));
-
-    const shipping = session.shipping_details;
-
-    const recipient = {
-      name: session.customer_details?.name || shipping?.name || "NICSTEPS Customer",
-      email: session.customer_email,
-      address1: shipping?.address?.line1 || "123 Test Street",
-      city: shipping?.address?.city || "London",
-      zip: shipping?.address?.postal_code || "SW1A 1AA",
-      country_code: shipping?.address?.country || "GB"
-    };
-
-    if (shipping?.address?.state) {
-      recipient.state_code = shipping.address.state;
-    }
-
-    const printfulOrder = await fetch("https://api.printful.com/orders", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${process.env.PRINTFUL_API_KEY}`,
-        "X-PF-Store-Id": "18797480",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        confirm: true,
-        recipient,
-        items: printfulItems
-      })
-    });
-
-    const printfulData = await printfulOrder.json();
-    console.log("Printful order created:", printfulData);
-
-    // Send confirmation email
-    const order = {
-      customerName: recipient.name,
-      email: session.customer_email,
-      orderNumber: `NIC-${Math.floor(Math.random() * 1000000)}`,
-      orderDate: new Date().toLocaleDateString(),
-      items: printfulItems,
-      subtotal: session.amount_subtotal / 100,
-      shipping: session.total_details.amount_shipping / 100,
-      total: session.amount_total / 100,
-      shippingAddress: `${recipient.address1}, ${recipient.city}, ${recipient.zip}, ${recipient.country_code}`
-    };
-
-    await sendOrderConfirmation(order);
-    console.log("Email sent automatically via webhook.");
-
-  } catch (err) {
-    console.error("Webhook handler error:", err);
-  }
+// ⭐ SAFETY CHECK — Add this here
+if (!fullOrder.result.items || fullOrder.result.items.length === 0) {
+  console.error("Printful returned no items");
 }
+
+      // 5. Build email items with full details
+      const emailItems = fullOrder.result.items.map(item => ({
+        name: item.product.name,
+        description: item.variant.name,
+        quantity: item.quantity,
+        price: item.retail_price,
+        image: item.files?.[0]?.preview_url || null
+      }));
+
+      // 6. Build email order object
+      const order = {
+        customerName: recipient.name,
+        email: session.customer_email,
+        orderNumber: `NIC-${Math.floor(Math.random() * 1000000)}`,
+        orderDate: new Date().toLocaleDateString(),
+        items: emailItems,
+        subtotal: session.amount_subtotal / 100,
+        shipping: session.total_details.amount_shipping / 100,
+        total: session.amount_total / 100,
+        shippingAddress: `${recipient.address1}, ${recipient.city}, ${recipient.zip}, ${recipient.country_code}`
+      };
+
+      // 7. Send confirmation email
+      await sendOrderConfirmation(order);
+      console.log("Email sent automatically via webhook.");
+
+    } catch (err) {
+      console.error("Webhook handler error:", err);
+    }
+  }
 
   res.json({ received: true });
 });
