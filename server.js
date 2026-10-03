@@ -278,7 +278,7 @@ const emailItems = fullOrder.result.items.map(item => {
     image: `https://nicsteps-frontend.netlify.app/images/${imageMap[variantName] || "default.png"}`
   };
 });
-
+console.log("IMAGE URL SENT TO SENDGRID:", emailItems[0].image);
 
       // 6. Build email order object
       const order = {
