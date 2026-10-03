@@ -251,11 +251,18 @@ if (!fullOrder.result.items || fullOrder.result.items.length === 0) {
   console.error("Printful returned no items");
 }
 
-// ⭐ Build imageMap automatically from PRODUCTS
-const imageMap = {};
-for (const key in PRODUCTS) {
-  imageMap[key] = PRODUCTS[key].image.replace("images/", "");
-}
+// ⭐ Image mapping for your Netlify images
+const imageMap = {
+  "Multicam Black": "multicam-black.png",
+  "Dark Navy": "dark-navy.png",
+  "Royal Blue": "royal-blue.png",
+  "Olive": "olive.png",
+  "Red": "red.png",
+  "Khaki": "khaki.png",
+  "Dark Grey": "dark-grey.png",
+  "Black": "black.png",
+  "White": "white.png"
+};
 
 // 5. Build email items with full details
 const emailItems = fullOrder.result.items.map(item => {
