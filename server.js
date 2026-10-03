@@ -111,7 +111,7 @@ app.post("/create-order", async (req, res) => {
         description: `${item.variant_name || ""} ${item.options ? item.options.join(", ") : ""}`.trim(),
         quantity: item.quantity,
         price: item.price,
-      }))
+      })),
 
         subtotal: data.result.costs.subtotal,
         shipping: data.result.costs.shipping,
