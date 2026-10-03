@@ -252,13 +252,14 @@ if (!fullOrder.result.items || fullOrder.result.items.length === 0) {
 }
 
       // 5. Build email items with full details
-      const emailItems = fullOrder.result.items.map(item => ({
-        name: item.product.name,
-        description: item.variant.name,
+        const emailItems = fullOrder.result.items.map(item => ({
+        name: item.product?.name || "NICSTEPS Product",
+        description: item.variant?.name || "Custom Embroidery",
         quantity: item.quantity,
-        price: item.retail_price,
+        price: item.retail_price || session.amount_total / 100,
         image: item.files?.[0]?.preview_url || null
-      }));
+}));
+
 
       // 6. Build email order object
       const order = {
