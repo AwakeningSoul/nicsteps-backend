@@ -43,7 +43,7 @@ app.get("/", (req, res) => {
 // ⭐ STRIPE CHECKOUT SESSION ROUTE
 app.post("/create-checkout-session", async (req, res) => {
   try {
-    const { items, customerEmail } = req.body;
+    const { items, customerEmail, tipAmount } = req.body;
 
     const line_items = items.map(item => ({
       price_data: {
@@ -54,27 +54,38 @@ app.post("/create-checkout-session", async (req, res) => {
             printfulVariantId: String(item.variant_id)
           }
         },
-        unit_amount: item.price   // already in pence from frontend
+        unit_amount: item.price   // already in pence
       },
       quantity: item.quantity
     }));
 
-const session = await stripe.checkout.sessions.create({
-  payment_method_types: ["card"],
-  mode: "payment",
-  customer_email: customerEmail,
+    // ⭐ ADD TIP AS SEPARATE LINE ITEM
+    if (tipAmount && tipAmount > 0) {
+      line_items.push({
+        price_data: {
+          currency: "gbp",
+          product_data: {
+            name: "Tip NIC ❤️",
+            metadata: { isTip: "true" }   // prevents Printful from using it
+          },
+          unit_amount: tipAmount   // already in pence
+        },
+        quantity: 1
+      });
+    }
 
-  // ⭐ REQUIRED FIX
-  billing_address_collection: "required",
-
-  shipping_address_collection: {
-    allowed_countries: ['GB']
-  },
-
-  line_items,
-  success_url: "https://nicsteps-frontend.netlify.app/success.html",
-  cancel_url: "https://nicsteps-frontend.netlify.app/cancel.html",
-});
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      mode: "payment",
+      customer_email: customerEmail,
+      billing_address_collection: "required",
+      shipping_address_collection: {
+        allowed_countries: ['GB']
+      },
+      line_items,
+      success_url: "https://nicsteps-frontend.netlify.app/success.html",
+      cancel_url: "https://nicsteps-frontend.netlify.app/cancel.html",
+    });
 
     res.json({ url: session.url });
   } catch (error) {
