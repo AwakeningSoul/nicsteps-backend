@@ -48,13 +48,13 @@ app.post("/create-checkout-session", async (req, res) => {
     const line_items = items.map(item => ({
       price_data: {
         currency: "gbp",
-       product_data: {
-        name: item.name,
-        tax_behavior: "exclusive",   // ⭐ Helps Stripe classify as physical
-        metadata: {
-        printfulVariantId: String(item.variant_id)
-        }
-      },
+        product_data: {
+          name: item.name,
+          tax_behavior: "exclusive",
+          metadata: {
+            printfulVariantId: String(item.variant_id)
+          }
+        },
         unit_amount: item.price
       },
       quantity: item.quantity
@@ -80,12 +80,10 @@ app.post("/create-checkout-session", async (req, res) => {
       mode: "payment",
       customer_email: customerEmail,
 
-      // ⭐ REQUIRED FOR SHIPPING DETAILS TO APPEAR IN WEBHOOK
       shipping_address_collection: {
         allowed_countries: ["GB"]
       },
 
-      // ⭐ REQUIRED — WITHOUT THIS, STRIPE DOES NOT SEND shipping_details
       shipping_options: [
         {
           shipping_rate_data: {
