@@ -44,13 +44,13 @@ app.post(
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
-    if (event.type === "checkout.session.completed") {
+    if (event.type === ".session.completed") {
       try {
         const session = event.data.object;
 
         console.log("SESSION OBJECT:", JSON.stringify(session, null, 2));
 
-        // Stripe sends shipping info in shipping_details for Checkout
+        // Stripe sends shipping info in shipping_details for 
         const shipping =
           session.shipping_details ||
           session.shipping ||
@@ -60,7 +60,7 @@ app.post(
         console.log("SHIPPING DETAILS USED:", shipping);
 
         // ⭐ Get line items with expanded product metadata
-        const lineItems = await stripe.checkout.sessions.listLineItems(
+        const lineItems = await stripe..sessions.listLineItems(
           session.id,
           {
             limit: 100,
@@ -295,13 +295,20 @@ app.post("/create-checkout-session", async (req, res) => {
       });
     }
 
-    const session = await stripe.checkout.sessions.create({
+    const session = await stripe.sessions.create({
       payment_method_types: ["card"],
       mode: "payment",
       customer_email: customerEmail,
       shipping_address_collection: {
-        allowed_countries: ["GB"],
-      },
+  allowed_countries: [
+    "GB", "IE", "FR", "DE", "ES", "IT", "NL", "BE", "SE", "NO", "FI", "DK",
+    "US", "CA", "AU", "NZ",
+    "AT", "CH", "PT", "PL", "CZ", "SK", "HU", "RO", "BG", "EE", "LV", "LT",
+    "JP", "KR", "SG", "HK", "MY", "TH", "PH", "ID",
+    "BR", "AR", "CL", "MX",
+    "ZA"
+  ]
+},
       shipping_options: [
         {
           shipping_rate_data: {
