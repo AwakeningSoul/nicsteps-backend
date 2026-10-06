@@ -12,11 +12,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const app = express();
 
-// ⭐ IMPORTANT: Stripe webhook needs RAW body
-app.use(
-  "/webhook",
-  express.raw({ type: "application/json" })
-);
+// ⭐ RAW BODY FOR WEBHOOK
+app.use("/webhook", express.raw({ type: "application/json" }));
 
 // Normal JSON for everything else
 app.use(express.json());
@@ -60,7 +57,7 @@ app.post("/create-checkout-session", async (req, res) => {
       quantity: item.quantity
     }));
 
-    // ⭐ ADD TIP AS SEPARATE LINE ITEM
+    // ⭐ ADD TIP
     if (tipAmount && tipAmount > 0) {
       line_items.push({
         price_data: {
@@ -111,7 +108,8 @@ app.post("/create-checkout-session", async (req, res) => {
   }
 });
 
-// ⭐ PRINTFUL ORDER ROUTE (manual order creation)
+
+// ⭐ PRINTFUL ORDER ROUTE
 app.post("/create-order", async (req, res) => {
   try {
     const orderData = req.body;
@@ -135,12 +133,11 @@ app.post("/create-order", async (req, res) => {
         orderNumber: data.result.id,
         orderDate: new Date().toLocaleDateString(),
         items: data.result.items.map((item) => ({
-        name: item.variant_name || item.product?.name || "NICSTEPS Product",
-        description: `${item.variant_name || ""} ${item.options ? item.options.join(", ") : ""}`.trim(),
-        quantity: item.quantity,
-        price: item.price,
-      })),
-
+          name: item.variant_name || item.product?.name || "NICSTEPS Product",
+          description: `${item.variant_name || ""} ${item.options ? item.options.join(", ") : ""}`.trim(),
+          quantity: item.quantity,
+          price: item.price,
+        })),
         subtotal: data.result.costs.subtotal,
         shipping: data.result.costs.shipping,
         total: data.result.costs.total,
@@ -184,6 +181,8 @@ app.get("/test-email", async (req, res) => {
     res.status(500).send("Email failed.");
   }
 });
+
+
 // ⭐ STRIPE WEBHOOK ROUTE
 app.post("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
   const sig = req.headers["stripe-signature"];
@@ -203,12 +202,10 @@ app.post("/webhook", express.raw({ type: "application/json" }), async (req, res)
 
   if (event.type === "checkout.session.completed") {
     try {
-      // ⭐ USE WEBHOOK SESSION DIRECTLY
       const session = event.data.object;
 
       console.log("SHIPPING DETAILS:", session.shipping_details);
 
-      // ⭐ Retrieve line items
       const lineItems = await stripe.checkout.sessions.listLineItems(
         session.id,
         {
@@ -262,7 +259,7 @@ app.post("/webhook", express.raw({ type: "application/json" }), async (req, res)
       const printfulData = await printfulOrder.json();
       console.log("Printful order created:", printfulData);
 
-      // ⭐ Fetch FULL Printful order details
+      // ⭐ Fetch full Printful order
       const fullOrderResponse = await fetch(
         `https://api.printful.com/orders/${printfulData.result.id}`,
         {
@@ -275,11 +272,7 @@ app.post("/webhook", express.raw({ type: "application/json" }), async (req, res)
 
       const fullOrder = await fullOrderResponse.json();
 
-      if (!fullOrder.result.items || fullOrder.result.items.length === 0) {
-        console.error("Printful returned no items");
-      }
-
-      // ⭐ PRODUCTS mapping
+      // ⭐ Build email items
       const PRODUCTS = {
         "Multicam Black": {
           image: "images/multicam-black.png",
@@ -319,7 +312,6 @@ app.post("/webhook", express.raw({ type: "application/json" }), async (req, res)
         }
       };
 
-      // ⭐ Reverse lookup
       const variantIdToColor = {};
       for (const color in PRODUCTS) {
         const variants = PRODUCTS[color].variants;
@@ -328,7 +320,6 @@ app.post("/webhook", express.raw({ type: "application/json" }), async (req, res)
         }
       }
 
-      // ⭐ Image mapping
       const imageMap = {
         "Multicam Black": "multicam-black.png",
         "Dark Navy": "dark-navy.png",
@@ -341,14 +332,9 @@ app.post("/webhook", express.raw({ type: "application/json" }), async (req, res)
         "White": "white.png"
       };
 
-      // ⭐ Build email items
       const emailItems = fullOrder.result.items.map(item => {
         const variantId = item.variant_id;
         const variantName = variantIdToColor[variantId];
-
-        console.log("FULL VARIANT NAME FROM PRINTFUL:", item.variant?.name);
-        console.log("VARIANT ID:", variantId);
-        console.log("RESOLVED COLOR NAME:", variantName);
 
         return {
           name: item.product?.name || "NICSTEPS Product",
@@ -359,9 +345,6 @@ app.post("/webhook", express.raw({ type: "application/json" }), async (req, res)
         };
       });
 
-      console.log("IMAGE URL SENT TO SENDGRID:", emailItems[0].image);
-
-      // ⭐ Build email order
       const order = {
         customerName: recipient.name,
         email: session.customer_email,
@@ -374,7 +357,6 @@ app.post("/webhook", express.raw({ type: "application/json" }), async (req, res)
         shippingAddress: `${recipient.address1}, ${recipient.city}, ${recipient.zip}, ${recipient.country_code}`
       };
 
-      // ⭐ Send confirmation email
       await sendOrderConfirmation(order);
       console.log("Email sent automatically via webhook.");
 
@@ -395,7 +377,7 @@ app.get("/debug-cap/:id", async (req, res) => {
     const response = await fetch(`https://api.printful.com/store/products/${productId}`, {
       headers: {
         Authorization: `Bearer ${process.env.PRINTFUL_API_KEY}`,
-       "X-PF-Store-Id": process.env.PRINTFUL_STORE_ID,
+        "X-PF-Store-Id": process.env.PRINTFUL_STORE_ID,
       },
     });
     const data = await response.json();
