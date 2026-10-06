@@ -185,7 +185,6 @@ app.get("/test-email", async (req, res) => {
     res.status(500).send("Email failed.");
   }
 });
-
 // ⭐ STRIPE WEBHOOK ROUTE
 app.post("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
   const sig = req.headers["stripe-signature"];
@@ -205,10 +204,9 @@ app.post("/webhook", express.raw({ type: "application/json" }), async (req, res)
 
   if (event.type === "checkout.session.completed") {
     try {
-      // ⭐ USE THE WEBHOOK SESSION DIRECTLY — DO NOT RETRIEVE
+      // ⭐ USE WEBHOOK SESSION DIRECTLY
       const session = event.data.object;
 
-      // ⭐ DEBUG
       console.log("SHIPPING DETAILS:", session.shipping_details);
 
       // ⭐ Retrieve line items
@@ -222,7 +220,7 @@ app.post("/webhook", express.raw({ type: "application/json" }), async (req, res)
 
       console.log("Payment completed:", session.id);
 
-      // Build Printful items
+      // ⭐ Build Printful items
       const printfulItems = lineItems.data.map(item => ({
         variant_id: Number(item.price.product.metadata.printfulVariantId),
         quantity: item.quantity,
@@ -265,118 +263,106 @@ app.post("/webhook", express.raw({ type: "application/json" }), async (req, res)
       const printfulData = await printfulOrder.json();
       console.log("Printful order created:", printfulData);
 
-      res.json({ received: true });
-    } catch (err) {
-      console.error("Webhook handler error:", err);
-      res.status(500).send("Webhook handler failed");
-    }
-  }
-});
+      // ⭐ Fetch FULL Printful order details
+      const fullOrderResponse = await fetch(
+        `https://api.printful.com/orders/${printfulData.result.id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.PRINTFUL_API_KEY}`,
+            "X-PF-Store-Id": "18797480"
+          }
+        }
+      );
 
-     // 4. Fetch FULL Printful order details
-const fullOrderResponse = await fetch(
-  `https://api.printful.com/orders/${printfulData.result.id}`,
-  {
-    headers: {
-      Authorization: `Bearer ${process.env.PRINTFUL_API_KEY}`,
-      "X-PF-Store-Id": "18797480"
-    }
-  }
-);
+      const fullOrder = await fullOrderResponse.json();
 
-const fullOrder = await fullOrderResponse.json();
+      if (!fullOrder.result.items || fullOrder.result.items.length === 0) {
+        console.error("Printful returned no items");
+      }
 
-// ⭐ SAFETY CHECK
-if (!fullOrder.result.items || fullOrder.result.items.length === 0) {
-  console.error("Printful returned no items");
-}
+      // ⭐ PRODUCTS mapping
+      const PRODUCTS = {
+        "Multicam Black": {
+          image: "images/multicam-black.png",
+          variants: { "S/M": 15897, "L/XL": 15898 }
+        },
+        "Dark Navy": {
+          image: "images/dark-navy.png",
+          variants: { "S/M": 5278, "L/XL": 5279 }
+        },
+        "Black": {
+          image: "images/black.png",
+          variants: { "S/M": 5276, "L/XL": 5277 }
+        },
+        "Royal Blue": {
+          image: "images/royal-blue.png",
+          variants: { "S/M": 5286, "L/XL": 5287 }
+        },
+        "Red": {
+          image: "images/red.png",
+          variants: { "S/M": 5288, "L/XL": 5289 }
+        },
+        "Olive": {
+          image: "images/olive.png",
+          variants: { "S/M": 15901, "L/XL": 15902 }
+        },
+        "Dark Grey": {
+          image: "images/dark-grey.png",
+          variants: { "S/M": 5280, "L/XL": 5281 }
+        },
+        "Khaki": {
+          image: "images/khaki.png",
+          variants: { "S/M": 5292, "L/XL": 5293 }
+        },
+        "White": {
+          image: "images/white.png",
+          variants: { "S/M": 5274, "L/XL": 5275 }
+        }
+      };
 
-// ⭐ Your PRODUCTS object (needed for reverse lookup)
-const PRODUCTS = {
-  "Multicam Black": {
-    image: "images/multicam-black.png",
-    variants: { "S/M": 15897, "L/XL": 15898 }
-  },
-  "Dark Navy": {
-    image: "images/dark-navy.png",
-    variants: { "S/M": 5278, "L/XL": 5279 }
-  },
-  "Black": {
-    image: "images/black.png",
-    variants: { "S/M": 5276, "L/XL": 5277 }
-  },
-  "Royal Blue": {
-    image: "images/royal-blue.png",
-    variants: { "S/M": 5286, "L/XL": 5287 }
-  },
-  "Red": {
-    image: "images/red.png",
-    variants: { "S/M": 5288, "L/XL": 5289 }
-  },
-  "Olive": {
-    image: "images/olive.png",
-    variants: { "S/M": 15901, "L/XL": 15902 }
-  },
-  "Dark Grey": {
-    image: "images/dark-grey.png",
-    variants: { "S/M": 5280, "L/XL": 5281 }
-  },
-  "Khaki": {
-    image: "images/khaki.png",
-    variants: { "S/M": 5292, "L/XL": 5293 }
-  },
-  "White": {
-    image: "images/white.png",
-    variants: { "S/M": 5274, "L/XL": 5275 }
-  }
-};
+      // ⭐ Reverse lookup
+      const variantIdToColor = {};
+      for (const color in PRODUCTS) {
+        const variants = PRODUCTS[color].variants;
+        for (const size in variants) {
+          variantIdToColor[variants[size]] = color;
+        }
+      }
 
-// ⭐ Build reverse lookup: variant_id → color name
-const variantIdToColor = {};
-for (const color in PRODUCTS) {
-  const variants = PRODUCTS[color].variants;
-  for (const size in variants) {
-    variantIdToColor[variants[size]] = color;
-  }
-}
+      // ⭐ Image mapping
+      const imageMap = {
+        "Multicam Black": "multicam-black.png",
+        "Dark Navy": "dark-navy.png",
+        "Royal Blue": "royal-blue.png",
+        "Olive": "olive.png",
+        "Red": "red.png",
+        "Khaki": "khaki.png",
+        "Dark Grey": "dark-grey.png",
+        "Black": "black.png",
+        "White": "white.png"
+      };
 
-// ⭐ Image mapping for your Netlify images
-const imageMap = {
-  "Multicam Black": "multicam-black.png",
-  "Dark Navy": "dark-navy.png",
-  "Royal Blue": "royal-blue.png",
-  "Olive": "olive.png",
-  "Red": "red.png",
-  "Khaki": "khaki.png",
-  "Dark Grey": "dark-grey.png",
-  "Black": "black.png",
-  "White": "white.png"
-};
+      // ⭐ Build email items
+      const emailItems = fullOrder.result.items.map(item => {
+        const variantId = item.variant_id;
+        const variantName = variantIdToColor[variantId];
 
-// 5. Build email items with full details
-const emailItems = fullOrder.result.items.map(item => {
+        console.log("FULL VARIANT NAME FROM PRINTFUL:", item.variant?.name);
+        console.log("VARIANT ID:", variantId);
+        console.log("RESOLVED COLOR NAME:", variantName);
 
-  // Printful does NOT return variant.name for API-created draft orders
-  // So we use variant_id instead
-  const variantId = item.variant_id;
-  const variantName = variantIdToColor[variantId];
+        return {
+          name: item.product?.name || "NICSTEPS Product",
+          description: variantName || "Custom Embroidery",
+          quantity: item.quantity,
+          price: item.retail_price || session.amount_total / 100,
+          image: `https://nicsteps-frontend.netlify.app/images/${imageMap[variantName] || "default.png"}`
+        };
+      });
 
-  console.log("FULL VARIANT NAME FROM PRINTFUL:", item.variant?.name);
-  console.log("VARIANT ID:", variantId);
-  console.log("RESOLVED COLOR NAME:", variantName);
+      console.log("IMAGE URL SENT TO SENDGRID:", emailItems[0].image);
 
-  return {
-    name: item.product?.name || "NICSTEPS Product",
-    description: variantName || "Custom Embroidery",
-    quantity: item.quantity,
-    price: item.retail_price || session.amount_total / 100,
-    image: `https://nicsteps-frontend.netlify.app/images/${imageMap[variantName] || "default.png"}`
-  };
-});
-
-console.log("IMAGE URL SENT TO SENDGRID:", emailItems[0].image);
-      
-      // 6. Build email order object
+      // ⭐ Build email order
       const order = {
         customerName: recipient.name,
         email: session.customer_email,
@@ -389,17 +375,19 @@ console.log("IMAGE URL SENT TO SENDGRID:", emailItems[0].image);
         shippingAddress: `${recipient.address1}, ${recipient.city}, ${recipient.zip}, ${recipient.country_code}`
       };
 
-      // 7. Send confirmation email
+      // ⭐ Send confirmation email
       await sendOrderConfirmation(order);
       console.log("Email sent automatically via webhook.");
 
     } catch (err) {
       console.error("Webhook handler error:", err);
+      return res.status(500).send("Webhook handler failed");
     }
   }
 
   res.json({ received: true });
 });
+
 
 // ⭐ DEBUG ROUTE TO FETCH PRINTFUL PRODUCT DETAILS
 app.get("/debug-cap/:id", async (req, res) => {
@@ -417,7 +405,6 @@ app.get("/debug-cap/:id", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
 
 // START SERVER
 app.listen(3000, () => {
