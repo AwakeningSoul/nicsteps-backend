@@ -40,28 +40,32 @@ app.get("/", (req, res) => {
 // ⭐ STRIPE CHECKOUT SESSION ROUTE
 app.post("/create-checkout-session", async (req, res) => {
   try {
-    const line_items = items.map(item => ({
-  price_data: {
-    currency: "gbp",
-    product_data: {
-      name: item.name,
-      tax_code: "txcd_20030000",   // ⭐ REQUIRED → tells Stripe this is a physical product
-      metadata: {
-        printfulVariantId: String(item.variant_id)
-      }
-    },
-    unit_amount: item.price
-  },
-  quantity: item.quantity
-}));
+    // ⭐ You forgot this line — this is why items was undefined
+    const { items, customerEmail, tipAmount } = req.body;
 
-    // ⭐ ADD TIP
+    const line_items = items.map(item => ({
+      price_data: {
+        currency: "gbp",
+        product_data: {
+          name: item.name,
+          tax_code: "txcd_20030000",   // Mark as physical product
+          metadata: {
+            printfulVariantId: String(item.variant_id)
+          }
+        },
+        unit_amount: item.price
+      },
+      quantity: item.quantity
+    }));
+
+    // ⭐ ADD TIP (only if present)
     if (tipAmount && tipAmount > 0) {
       line_items.push({
         price_data: {
           currency: "gbp",
           product_data: {
             name: "Tip NIC ❤️",
+            tax_code: "txcd_99999999",   // Mark tip as service
             metadata: { isTip: "true" }
           },
           unit_amount: tipAmount
@@ -105,7 +109,6 @@ app.post("/create-checkout-session", async (req, res) => {
     res.status(500).json({ error: "Stripe session failed" });
   }
 });
-
 
 // ⭐ PRINTFUL ORDER ROUTE
 app.post("/create-order", async (req, res) => {
