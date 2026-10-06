@@ -48,12 +48,13 @@ app.post("/create-checkout-session", async (req, res) => {
     const line_items = items.map(item => ({
       price_data: {
         currency: "gbp",
-        product_data: {
-          name: item.name,
-          metadata: {
-            printfulVariantId: String(item.variant_id)
-          }
-        },
+       product_data: {
+        name: item.name,
+        shippable: true,   // ⭐ REQUIRED FOR SHIPPING DETAILS
+        metadata: {
+        printfulVariantId: String(item.variant_id)
+        }
+      },
         unit_amount: item.price
       },
       quantity: item.quantity
