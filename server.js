@@ -40,7 +40,7 @@ app.get("/", (req, res) => {
 // ⭐ STRIPE CHECKOUT SESSION ROUTE
 app.post("/create-checkout-session", async (req, res) => {
   try {
-    // ⭐ You forgot this line — this is why items was undefined
+    // ⭐ REQUIRED — you removed this by accident
     const { items, customerEmail, tipAmount } = req.body;
 
     const line_items = items.map(item => ({
@@ -48,7 +48,7 @@ app.post("/create-checkout-session", async (req, res) => {
         currency: "gbp",
         product_data: {
           name: item.name,
-          tax_code: "txcd_20030000",   // Mark as physical product
+          tax_code: "txcd_20030000",   // Physical product
           metadata: {
             printfulVariantId: String(item.variant_id)
           }
@@ -58,14 +58,14 @@ app.post("/create-checkout-session", async (req, res) => {
       quantity: item.quantity
     }));
 
-    // ⭐ ADD TIP (only if present)
+    // ⭐ ADD TIP (optional)
     if (tipAmount && tipAmount > 0) {
       line_items.push({
         price_data: {
           currency: "gbp",
           product_data: {
             name: "Tip NIC ❤️",
-            tax_code: "txcd_99999999",   // Mark tip as service
+            tax_code: "txcd_99999999",   // Service
             metadata: { isTip: "true" }
           },
           unit_amount: tipAmount
