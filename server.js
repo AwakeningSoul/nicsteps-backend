@@ -214,13 +214,13 @@ app.post("/webhook", express.raw({ type: "application/json" }), async (req, res)
       const shipping = session.shipping_details;
 
       const recipient = {
-        name: session.customer_details?.name || shipping?.name || "NICSTEPS Customer",
-        email: session.customer_email,
-        address1: shipping?.address?.line1 || "123 Test Street",
-        city: shipping?.address?.city || "London",
-        zip: shipping?.address?.postal_code || "SW1A 1AA",
-        country_code: shipping?.address?.country || "GB"
-      };
+  name: session.shipping_details?.name || session.customer_details?.name || "NICSTEPS Customer",
+  email: session.customer_email,
+  address1: session.shipping_details?.address?.line1 || "123 Test Street",
+  city: session.shipping_details?.address?.city || "London",
+  zip: session.shipping_details?.address?.postal_code || "SW1A 1AA",
+  country_code: session.shipping_details?.address?.country || "GB"
+};
 
       if (shipping?.address?.state) {
         recipient.state_code = shipping.address.state;
