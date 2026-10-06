@@ -46,6 +46,7 @@ app.post("/create-checkout-session", async (req, res) => {
     const line_items = items.map(item => ({
       price_data: {
         currency: "gbp",
+        tax_behavior: "exclusive",   // ⭐ REQUIRED FOR PHYSICAL GOODS
         product_data: {
           name: item.name,
           tax_code: "txcd_20030000",
@@ -62,6 +63,7 @@ app.post("/create-checkout-session", async (req, res) => {
       line_items.push({
         price_data: {
           currency: "gbp",
+          tax_behavior: "exclusive",   // ⭐ Add here too
           product_data: {
             name: "Tip NIC ❤️",
             tax_code: "txcd_99999999",
