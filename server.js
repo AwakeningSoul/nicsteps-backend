@@ -190,6 +190,9 @@ app.post("/webhook", express.raw({ type: "application/json" }), async (req, res)
       // 1. Retrieve the session
         const session = event.data.object;
 
+      // ⭐ DEBUG: See what Stripe actually sent
+console.log("SHIPPING DETAILS:", session.shipping_details);
+
       // 2. Retrieve ALL line items
       const lineItems = await stripe.checkout.sessions.listLineItems(
           session.id,
