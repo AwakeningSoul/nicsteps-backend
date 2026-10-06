@@ -46,12 +46,12 @@ app.post("/create-checkout-session", async (req, res) => {
       price_data: {
         currency: "gbp",
         product_data: {
-          name: item.name,
-          tax_behavior: "exclusive",
-          metadata: {
-            printfulVariantId: String(item.variant_id)
-          }
-        },
+        name: item.name,
+        metadata: {
+        printfulVariantId: String(item.variant_id)
+        }
+      },
+
         unit_amount: item.price
       },
       quantity: item.quantity
