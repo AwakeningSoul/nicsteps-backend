@@ -40,22 +40,20 @@ app.get("/", (req, res) => {
 // ⭐ STRIPE CHECKOUT SESSION ROUTE
 app.post("/create-checkout-session", async (req, res) => {
   try {
-    const { items, customerEmail, tipAmount } = req.body;
-
     const line_items = items.map(item => ({
-      price_data: {
-        currency: "gbp",
-        product_data: {
-        name: item.name,
-        metadata: {
+  price_data: {
+    currency: "gbp",
+    product_data: {
+      name: item.name,
+      tax_code: "txcd_20030000",   // ⭐ REQUIRED → tells Stripe this is a physical product
+      metadata: {
         printfulVariantId: String(item.variant_id)
-        }
-      },
-
-        unit_amount: item.price
-      },
-      quantity: item.quantity
-    }));
+      }
+    },
+    unit_amount: item.price
+  },
+  quantity: item.quantity
+}));
 
     // ⭐ ADD TIP
     if (tipAmount && tipAmount > 0) {
