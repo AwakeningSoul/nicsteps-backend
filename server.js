@@ -188,8 +188,10 @@ app.post("/webhook", express.raw({ type: "application/json" }), async (req, res)
   if (event.type === "checkout.session.completed") {
     try {
       // 1. Retrieve the session
-        const session = event.data.object;
-
+        const session = await stripe.checkout.sessions.retrieve(event.data.object.id, {
+  expand: ['shipping_details', 'customer_details']
+});
+      
       // ⭐ DEBUG: See what Stripe actually sent
 console.log("SHIPPING DETAILS:", session.shipping_details);
 
