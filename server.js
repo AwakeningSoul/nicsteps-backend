@@ -204,7 +204,12 @@ app.post("/webhook", express.raw({ type: "application/json" }), async (req, res)
     try {
       const session = event.data.object;
 
-      console.log("SHIPPING DETAILS:", session.shipping_details);
+      // Log both so you can see which one is populated
+      console.log("SESSION SHIPPING:", session.shipping);
+      console.log("SESSION SHIPPING_DETAILS:", session.shipping_details);
+
+      // ⭐ Use whichever exists
+      const shipping = session.shipping || session.shipping_details;
 
       const lineItems = await stripe.checkout.sessions.listLineItems(
         session.id,
@@ -226,8 +231,7 @@ app.post("/webhook", express.raw({ type: "application/json" }), async (req, res)
         ]
       }));
 
-      const shipping = session.shipping_details;
-
+      // ⭐ Build recipient using the correct shipping object
       const recipient = {
         name: shipping?.name || session.customer_details?.name || "NICSTEPS Customer",
         email: session.customer_email,
