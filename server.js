@@ -44,13 +44,13 @@ app.post(
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
-    if (event.type === ".session.completed") {
+    if (event.type === "checkout.session.completed") {
       try {
         const session = event.data.object;
 
         console.log("SESSION OBJECT:", JSON.stringify(session, null, 2));
 
-        // Stripe sends shipping info in shipping_details for 
+        // Stripe sends shipping info in shipping_details
         const shipping =
           session.shipping_details ||
           session.shipping ||
@@ -60,7 +60,7 @@ app.post(
         console.log("SHIPPING DETAILS USED:", shipping);
 
         // ⭐ Get line items with expanded product metadata
-        const lineItems = await stripe..sessions.listLineItems(
+        const lineItems = await stripe.checkout.sessions.listLineItems(
           session.id,
           {
             limit: 100,
@@ -152,7 +152,7 @@ app.post(
             image: "images/dark-navy.png",
             variants: { "S/M": 5278, "L/XL": 5279 },
           },
-          Black: {
+          "Black": {
             image: "images/black.png",
             variants: { "S/M": 5276, "L/XL": 5277 },
           },
@@ -160,11 +160,11 @@ app.post(
             image: "images/royal-blue.png",
             variants: { "S/M": 5286, "L/XL": 5287 },
           },
-          Red: {
+          "Red": {
             image: "images/red.png",
             variants: { "S/M": 5288, "L/XL": 5289 },
           },
-          Olive: {
+          "Olive": {
             image: "images/olive.png",
             variants: { "S/M": 15901, "L/XL": 15902 },
           },
@@ -172,11 +172,11 @@ app.post(
             image: "images/dark-grey.png",
             variants: { "S/M": 5280, "L/XL": 5281 },
           },
-          Khaki: {
+          "Khaki": {
             image: "images/khaki.png",
             variants: { "S/M": 5292, "L/XL": 5293 },
           },
-          White: {
+          "White": {
             image: "images/white.png",
             variants: { "S/M": 5274, "L/XL": 5275 },
           },
@@ -194,12 +194,12 @@ app.post(
           "Multicam Black": "multicam-black.png",
           "Dark Navy": "dark-navy.png",
           "Royal Blue": "royal-blue.png",
-          Olive: "olive.png",
-          Red: "red.png",
-          Khaki: "khaki.png",
+          "Olive": "olive.png",
+          "Red": "red.png",
+          "Khaki": "khaki.png",
           "Dark Grey": "dark-grey.png",
-          Black: "black.png",
-          White: "white.png",
+          "Black": "black.png",
+          "White": "white.png",
         };
 
         const emailItems = fullOrder.result.items.map((item) => {
@@ -295,39 +295,46 @@ app.post("/create-checkout-session", async (req, res) => {
       });
     }
 
-   const session = await stripe.checkout.sessions.create({
+    const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "payment",
       customer_email: customerEmail,
-        shipping_address_collection: {
+      shipping_address_collection: {
         allowed_countries: [
-      "GB", "IE", "FR", "DE", "ES", "IT", "NL", "BE", "SE", "NO", "FI", "DK",
-      "US", "CA", "AU", "NZ",
-      "AT", "CH", "PT", "PL", "CZ", "SK", "HU", "RO", "BG", "EE", "LV", "LT",
-      "JP", "KR", "SG", "HK", "MY", "TH", "PH", "ID",
-      "BR", "AR", "CL", "MX",
-      "ZA"
-    ]
-  },
+          "GB", "IE", "FR", "DE", "ES", "IT", "NL", "BE", "SE", "NO", "FI", "DK",
+          "US", "CA", "AU", "NZ",
+          "AT", "CH", "PT", "PL", "CZ", "SK", "HU", "RO", "BG", "EE", "LV", "LT",
+          "JP", "KR", "SG", "HK", "MY", "TH", "PH", "ID",
+          "BR", "AR", "CL", "MX",
+          "ZA"
+        ]
+      },
 
-  shipping_options: [
-    {
-      shipping_rate_data: {
-        type: "fixed_amount",
-        fixed_amount: { amount: 0, currency: "gbp" },
-        display_name: "Free Shipping",
-        delivery_estimate: {
-          minimum: { unit: "business_day", value: 2 },
-          maximum: { unit: "business_day", value: 5 }
-        }
-      }
-    }
-  ],
+      shipping_options: [
+        {
+          shipping_rate_data: {
+            type: "fixed_amount",
+            fixed_amount: { amount: 0, currency: "gbp" },
+            display_name: "Free Shipping",
+            delivery_estimate: {
+              minimum: { unit: "business_day", value: 2 },
+              maximum: { unit: "business_day", value: 5 },
+            },
+          },
+        },
+      ],
 
-  billing_address_collection: "required",
-  line_items,
-  success_url: "https://nicsteps-frontend.netlify.app/success.html",
-  cancel_url: "https://nicsteps-frontend.netlify.app/cancel.html"
+      billing_address_collection: "required",
+      line_items,
+      success_url: "https://nicsteps-frontend.netlify.app/success.html",
+      cancel_url: "https://nicsteps-frontend.netlify.app/cancel.html",
+    });
+
+    res.json({ url: session.url });
+  } catch (error) {
+    console.error("Stripe session error:", error);
+    res.status(500).json({ error: "Stripe session failed" });
+  }
 });
 
 // ⭐ PRINTFUL ORDER ROUTE (manual, if you still use it)
@@ -428,3 +435,4 @@ app.get("/debug-cap/:id", async (req, res) => {
 app.listen(3000, () => {
   console.log("Vigo backend running on http://localhost:3000");
 });
+
