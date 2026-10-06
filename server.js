@@ -144,7 +144,7 @@ app.post(
         const fullOrder = await fullOrderResponse.json();
 
         const PRODUCTS = {
-          Multicam Black: {
+          "Multicam Black": {
             image: "images/multicam-black.png",
             variants: { "S/M": 15897, "L/XL": 15898 },
           },
@@ -277,7 +277,7 @@ app.post("/create-checkout-session", async (req, res) => {
         unit_amount: item.price,
       },
       quantity: item.quantity,
-    });
+    }));
 
     if (tipAmount && tipAmount > 0) {
       line_items.push({
@@ -426,4 +426,3 @@ app.get("/debug-cap/:id", async (req, res) => {
 app.listen(3000, () => {
   console.log("Vigo backend running on http://localhost:3000");
 });
-
