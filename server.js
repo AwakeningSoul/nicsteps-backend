@@ -295,44 +295,39 @@ app.post("/create-checkout-session", async (req, res) => {
       });
     }
 
-    const session = await stripe.sessions.create({
+   const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "payment",
       customer_email: customerEmail,
-      shipping_address_collection: {
-  allowed_countries: [
-    "GB", "IE", "FR", "DE", "ES", "IT", "NL", "BE", "SE", "NO", "FI", "DK",
-    "US", "CA", "AU", "NZ",
-    "AT", "CH", "PT", "PL", "CZ", "SK", "HU", "RO", "BG", "EE", "LV", "LT",
-    "JP", "KR", "SG", "HK", "MY", "TH", "PH", "ID",
-    "BR", "AR", "CL", "MX",
-    "ZA"
-  ]
-},
-      shipping_options: [
-        {
-          shipping_rate_data: {
-            type: "fixed_amount",
-            fixed_amount: { amount: 0, currency: "gbp" },
-            display_name: "Free Shipping",
-            delivery_estimate: {
-              minimum: { unit: "business_day", value: 2 },
-              maximum: { unit: "business_day", value: 5 },
-            },
-          },
-        },
-      ],
-      billing_address_collection: "required",
-      line_items,
-      success_url: "https://nicsteps-frontend.netlify.app/success.html",
-      cancel_url: "https://nicsteps-frontend.netlify.app/cancel.html",
-    });
+        shipping_address_collection: {
+        allowed_countries: [
+      "GB", "IE", "FR", "DE", "ES", "IT", "NL", "BE", "SE", "NO", "FI", "DK",
+      "US", "CA", "AU", "NZ",
+      "AT", "CH", "PT", "PL", "CZ", "SK", "HU", "RO", "BG", "EE", "LV", "LT",
+      "JP", "KR", "SG", "HK", "MY", "TH", "PH", "ID",
+      "BR", "AR", "CL", "MX",
+      "ZA"
+    ]
+  },
 
-    res.json({ url: session.url });
-  } catch (error) {
-    console.error("Stripe session error:", error);
-    res.status(500).json({ error: "Stripe session failed" });
-  }
+  shipping_options: [
+    {
+      shipping_rate_data: {
+        type: "fixed_amount",
+        fixed_amount: { amount: 0, currency: "gbp" },
+        display_name: "Free Shipping",
+        delivery_estimate: {
+          minimum: { unit: "business_day", value: 2 },
+          maximum: { unit: "business_day", value: 5 }
+        }
+      }
+    }
+  ],
+
+  billing_address_collection: "required",
+  line_items,
+  success_url: "https://nicsteps-frontend.netlify.app/success.html",
+  cancel_url: "https://nicsteps-frontend.netlify.app/cancel.html"
 });
 
 // ⭐ PRINTFUL ORDER ROUTE (manual, if you still use it)
