@@ -188,11 +188,11 @@ app.post("/webhook", express.raw({ type: "application/json" }), async (req, res)
   if (event.type === "checkout.session.completed") {
     try {
       // 1. Retrieve the session
-      const session = await stripe.checkout.sessions.retrieve(event.data.object.id);
+        const session = event.data.object;
 
       // 2. Retrieve ALL line items
       const lineItems = await stripe.checkout.sessions.listLineItems(
-        event.data.object.id,
+          session.id,
         {
           limit: 100,
           expand: ["data.price.product"]
