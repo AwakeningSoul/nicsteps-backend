@@ -50,7 +50,7 @@ app.post("/create-checkout-session", async (req, res) => {
         currency: "gbp",
        product_data: {
         name: item.name,
-        shippable: true,   // ⭐ REQUIRED FOR SHIPPING DETAILS
+        tax_behavior: "exclusive",   // ⭐ Helps Stripe classify as physical
         metadata: {
         printfulVariantId: String(item.variant_id)
         }
