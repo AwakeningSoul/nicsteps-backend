@@ -54,7 +54,7 @@ app.post("/create-checkout-session", async (req, res) => {
             printfulVariantId: String(item.variant_id)
           }
         },
-        unit_amount: item.price   // already in pence
+        unit_amount: item.price
       },
       quantity: item.quantity
     }));
@@ -66,9 +66,9 @@ app.post("/create-checkout-session", async (req, res) => {
           currency: "gbp",
           product_data: {
             name: "Tip NIC ❤️",
-            metadata: { isTip: "true" }   // prevents Printful from using it
+            metadata: { isTip: "true" }
           },
-          unit_amount: tipAmount   // already in pence
+          unit_amount: tipAmount
         },
         quantity: 1
       });
@@ -78,13 +78,31 @@ app.post("/create-checkout-session", async (req, res) => {
       payment_method_types: ["card"],
       mode: "payment",
       customer_email: customerEmail,
-      billing_address_collection: "required",
+
+      // ⭐ REQUIRED FOR SHIPPING DETAILS TO APPEAR IN WEBHOOK
       shipping_address_collection: {
-        allowed_countries: ['GB']
+        allowed_countries: ["GB"]
       },
+
+      // ⭐ REQUIRED — WITHOUT THIS, STRIPE DOES NOT SEND shipping_details
+      shipping_options: [
+        {
+          shipping_rate_data: {
+            type: "fixed_amount",
+            fixed_amount: { amount: 0, currency: "gbp" },
+            display_name: "Free Shipping",
+            delivery_estimate: {
+              minimum: { unit: "business_day", value: 2 },
+              maximum: { unit: "business_day", value: 5 }
+            }
+          }
+        }
+      ],
+
+      billing_address_collection: "required",
       line_items,
       success_url: "https://nicsteps-frontend.netlify.app/success.html",
-      cancel_url: "https://nicsteps-frontend.netlify.app/cancel.html",
+      cancel_url: "https://nicsteps-frontend.netlify.app/cancel.html"
     });
 
     res.json({ url: session.url });
@@ -187,17 +205,15 @@ app.post("/webhook", express.raw({ type: "application/json" }), async (req, res)
 
   if (event.type === "checkout.session.completed") {
     try {
-      // 1. Retrieve the session
-        const session = await stripe.checkout.sessions.retrieve(event.data.object.id, {
-  expand: ['shipping_details', 'customer_details']
-});
-      
-      // ⭐ DEBUG: See what Stripe actually sent
-console.log("SHIPPING DETAILS:", session.shipping_details);
+      // ⭐ USE THE WEBHOOK SESSION DIRECTLY — DO NOT RETRIEVE
+      const session = event.data.object;
 
-      // 2. Retrieve ALL line items
+      // ⭐ DEBUG
+      console.log("SHIPPING DETAILS:", session.shipping_details);
+
+      // ⭐ Retrieve line items
       const lineItems = await stripe.checkout.sessions.listLineItems(
-          session.id,
+        session.id,
         {
           limit: 100,
           expand: ["data.price.product"]
@@ -219,19 +235,19 @@ console.log("SHIPPING DETAILS:", session.shipping_details);
       const shipping = session.shipping_details;
 
       const recipient = {
-  name: session.shipping_details?.name || session.customer_details?.name || "NICSTEPS Customer",
-  email: session.customer_email,
-  address1: session.shipping_details?.address?.line1 || "123 Test Street",
-  city: session.shipping_details?.address?.city || "London",
-  zip: session.shipping_details?.address?.postal_code || "SW1A 1AA",
-  country_code: session.shipping_details?.address?.country || "GB"
-};
+        name: shipping?.name || session.customer_details?.name || "NICSTEPS Customer",
+        email: session.customer_email,
+        address1: shipping?.address?.line1 || "123 Test Street",
+        city: shipping?.address?.city || "London",
+        zip: shipping?.address?.postal_code || "SW1A 1AA",
+        country_code: shipping?.address?.country || "GB"
+      };
 
       if (shipping?.address?.state) {
         recipient.state_code = shipping.address.state;
       }
 
-      // 3. Create Printful order
+      // ⭐ Create Printful order
       const printfulOrder = await fetch("https://api.printful.com/orders", {
         method: "POST",
         headers: {
@@ -248,6 +264,14 @@ console.log("SHIPPING DETAILS:", session.shipping_details);
 
       const printfulData = await printfulOrder.json();
       console.log("Printful order created:", printfulData);
+
+      res.json({ received: true });
+    } catch (err) {
+      console.error("Webhook handler error:", err);
+      res.status(500).send("Webhook handler failed");
+    }
+  }
+});
 
      // 4. Fetch FULL Printful order details
 const fullOrderResponse = await fetch(
