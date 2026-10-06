@@ -41,6 +41,7 @@ app.get("/", (req, res) => {
 app.post("/create-checkout-session", async (req, res) => {
   try {
     const { items, customerEmail, tipAmount } = req.body;
+    console.log("BACKEND RECEIVED ITEMS:", items);
 
     const line_items = items.map(item => ({
       price_data: {
