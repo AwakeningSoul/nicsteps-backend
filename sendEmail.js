@@ -1,14 +1,17 @@
 import sgMail from "@sendgrid/mail";
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-
 export async function sendOrderConfirmation(order) {
+  if (!process.env.SENDGRID_API_KEY) {
+    console.warn("SENDGRID_API_KEY is not set; order confirmation email was skipped.");
+    return;
+  }
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
   const msg = {
     to: order.email,
-    bcc: "nickstepsinfo@gmail.com",   // Hidden copy to your Gmail
-    from: "orders@nicsteps.co.uk",    // Authenticated domain sender
-    reply_to: "orders@nicsteps.co.uk",
-    templateId: "d-79995007e9a34c7db845b1572a7380ae",
+    bcc: process.env.ORDER_BCC_EMAIL || "nickstepsinfo@gmail.com",
+    from: process.env.ORDER_FROM_EMAIL || "orders@nicsteps.co.uk",
+    reply_to: process.env.ORDER_REPLY_TO_EMAIL || "orders@nicsteps.co.uk",
+    templateId: process.env.SENDGRID_TEMPLATE_ID || "d-79995007e9a34c7db845b1572a7380ae",
     dynamic_template_data: {
       customerName: order.customerName,
       orderNumber: order.orderNumber,
@@ -26,8 +29,11 @@ export async function sendOrderConfirmation(order) {
     await sgMail.send(msg);
     console.log("Order confirmation email sent.");
   } catch (error) {
-    console.error("SendGrid error:", error);
+    console.error(
+      "SendGrid FULL ERROR:",
+      JSON.stringify(error.response?.body, null, 2)
+    );
+
+    throw error;
   }
 }
-
-
